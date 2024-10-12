@@ -47,7 +47,7 @@ app.use(
 app.use(cookieParser());
 
 app.use(express.json());
-app.use("/api/upload", uploadRoute);
+app.use("/api", uploadRoute);
 app.use("/api", authRouter);
 
 // MongoDB connection URI
