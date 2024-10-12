@@ -37,7 +37,12 @@ const corsOptions = {
 };
 
 // Middleware configuration
-app.use(cors(corsOptions));
+app.use(
+  cors({
+    origin: allowedOrigins, // Your frontend origin
+    credentials: true, // Allow credentials (cookies)
+  })
+);
 app.use(cookieParser());
 
 app.use(express.json());
@@ -147,14 +152,14 @@ async function run() {
     app.patch("/api/update/:id", validateJWT, async (req, res) => {
       try {
         const { id } = req.params; // Extract the link id from the request parameters
-        const { platform_name, platform_url } = req.body; // Extract fields to update from the request body
-
+        const { platform_name, platform_url } = req.body; // Extract fields to update from the request body 
+        
         // Check if the provided id is valid
         if (!ObjectId.isValid(id)) {
           return res.status(400).json({ message: "Invalid link ID." });
         }
         console.log(platform_name, platform_url);
-
+        
         // Build the update object based on fields provided in the body
         const updateFields = {};
         if (platform_name) {
