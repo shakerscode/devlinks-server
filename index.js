@@ -17,10 +17,6 @@ if (!process.env.DB_USER || !process.env.DB_PASS) {
 const uploadRoute = require("./upload");
 const { authRouter, validateJWT } = require("./auth");
 
-const allowedOrigins =
-  process.env.NODE_ENV === "production"
-    ? "https://share-link-ruddy.vercel.app"
-    : "http://localhost:5173";
 
  
 const corsOptions = {
@@ -36,6 +32,10 @@ const corsOptions = {
   },
   credentials: true, // Allow credentials (cookies)
 };
+const allowedOrigins =
+  process.env.NODE_ENV === "production"
+    ? "https://share-link-ruddy.vercel.app"
+    : "http://localhost:5173";
 
 // Middleware configuration
 app.use(
@@ -158,8 +158,7 @@ async function run() {
         // Check if the provided id is valid
         if (!ObjectId.isValid(id)) {
           return res.status(400).json({ message: "Invalid link ID." });
-        }
-        console.log(platform_name, platform_url);
+        } 
 
         // Build the update object based on fields provided in the body
         const updateFields = {};

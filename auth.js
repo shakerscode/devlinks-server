@@ -111,7 +111,7 @@ authRouter.post("/signin", async (req, res) => {
         sameSite: "lax",
         maxAge: 24 * 60 * 60 * 1000, // 24 hour
       });
-
+      
     res.status(200).json({ message: "Sign-in successful." });
   } catch (error) {
     console.error("Error signing in user:", error);
@@ -127,7 +127,8 @@ authRouter.post("/logout", (req, res) => {
 
 // Protect a backend route with validateJWT
 authRouter.get("/user/profile", async (req, res) => {
-  try { 
+  try {
+      console.log(req.cookies.authToken);
     const token = req.cookies.authToken;
     if (!token) {
       return res.status(401).json({ message: "No token provided" });
