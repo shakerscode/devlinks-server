@@ -68,7 +68,7 @@ authRouter.post("/register", async (req, res) => {
     // Set the token as an HttpOnly cookie
     res.cookie("authToken", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "None" :"Lax",
       sameSite: "None",
       maxAge: 24 * 60 * 60 * 1000, // 24 hour
     });
@@ -108,7 +108,7 @@ authRouter.post("/signin", async (req, res) => {
     res.cookie("authToken", token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "None",
+        sameSite: process.env.NODE_ENV === "production" ? "None" :"Lax",
         maxAge: 24 * 60 * 60 * 1000, // 24 hour
       });
       
