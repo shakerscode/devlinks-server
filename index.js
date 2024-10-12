@@ -19,7 +19,7 @@ const { authRouter, validateJWT } = require("./auth");
 
 const allowedOrigins =
   process.env.NODE_ENV === "production"
-    ? ["https://yourproductiondomain.com"]
+    ? ["https://share-link-ruddy.vercel.app"]
     : ["http://localhost:5173", "http://localhost:3000"];
 
 const corsOptions = {
@@ -105,13 +105,86 @@ async function run() {
     });
 
     // Define a GET route to fetch all links (optional)
-    app.get("/api/links",validateJWT, async (req, res) => {
+    app.get("/api/links", validateJWT, async (req, res) => {
       try {
         const links = await userLinksCollection.find({}).toArray();
         res.status(200).json(links);
       } catch (error) {
         console.error("Failed to fetch links:", error);
         res.status(500).json({ message: "Failed to fetch links." });
+      }
+    });
+
+    //Delete a link list
+    app.delete("/api/delete/:id", validateJWT, async (req, res) => {
+      try {
+        const { id } = req.params; // Extract the id from the request parameters
+
+        // Ensure the ID is valid and can be used in MongoDB
+        if (!ObjectId.isValid(id)) {
+          return res.status(400).json({ message: "Invalid ID format" });
+        }
+
+        // Delete the link from your collection (assuming you have a collection called 'userLinks')
+        const result = await userLinksCollection.deleteOne({
+          _id: new ObjectId(id),
+        });
+
+        if (result.deletedCount === 0) {
+          return res.status(404).json({ message: "Link not found" });
+        }
+
+        res.status(200).json({ message: "Link deleted successfully" });
+      } catch (error) {
+        console.error("Error deleting link:", error);
+        res.status(500).json({ message: "Failed to delete link" });
+      }
+    });
+
+    //Update a link
+
+    // Update a link
+    app.patch("/api/update/:id", validateJWT, async (req, res) => {
+      try {
+        const { id } = req.params; // Extract the link id from the request parameters
+        const { platform_name, platform_url } = req.body; // Extract fields to update from the request body
+
+        // Check if the provided id is valid
+        if (!ObjectId.isValid(id)) {
+          return res.status(400).json({ message: "Invalid link ID." });
+        }
+        console.log(platform_name, platform_url);
+
+        // Build the update object based on fields provided in the body
+        const updateFields = {};
+        if (platform_name) {
+          updateFields.platform_name = platform_name;
+        }
+        if (platform_url) {
+          updateFields.platform_url = platform_url;
+        }
+
+        if (Object.keys(updateFields).length === 0) {
+          return res
+            .status(400)
+            .json({ message: "No valid fields to update." });
+        }
+
+        // Use $set to update only the specified fields
+        const result = await userLinksCollection.updateOne(
+          { _id: new ObjectId(id) }, // Match the link by ID
+          { $set: updateFields } // Only update the provided fields
+        );
+
+        // Check if the link was found and updated
+        if (result.matchedCount === 0) {
+          return res.status(404).json({ message: "Link not found." });
+        }
+
+        res.status(200).json({ message: "Link updated successfully." });
+      } catch (error) {
+        console.error("Failed to update link:", error);
+        res.status(500).json({ message: "Failed to update link." });
       }
     });
   } catch (err) {

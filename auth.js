@@ -106,12 +106,12 @@ authRouter.post("/signin", async (req, res) => {
 
     // Set the token as an HttpOnly cookie
     res.cookie("authToken", token, {
-      httpOnly: true,
-      secure: false,
-      sameSite: "None",
-      maxAge: 24 * 60 * 60 * 1000, // 24 hour
-      path: "/",
-    });
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 24 * 60 * 60 * 1000, // 24 hour
+      });
+
     res.status(200).json({ message: "Sign-in successful." });
   } catch (error) {
     console.error("Error signing in user:", error);
@@ -127,12 +127,13 @@ authRouter.post("/logout", (req, res) => {
 
 // Protect a backend route with validateJWT
 authRouter.get("/user/profile", async (req, res) => {
-  try {
+  try { 
     const token = req.cookies.authToken;
     if (!token) {
       return res.status(401).json({ message: "No token provided" });
     }
 
+    
     // Verify JWT and extract user ID
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const userId = decoded.userId;
