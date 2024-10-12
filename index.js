@@ -19,9 +19,10 @@ const { authRouter, validateJWT } = require("./auth");
 
 const allowedOrigins =
   process.env.NODE_ENV === "production"
-    ? ["https://share-link-ruddy.vercel.app"]
-    : ["http://localhost:5173", "http://localhost:3000"];
+    ? "https://share-link-ruddy.vercel.app"
+    : "http://localhost:5173";
 
+ 
 const corsOptions = {
   origin: (origin, callback) => {
     // Allow requests with no origin (like mobile apps or curl requests)
@@ -152,14 +153,14 @@ async function run() {
     app.patch("/api/update/:id", validateJWT, async (req, res) => {
       try {
         const { id } = req.params; // Extract the link id from the request parameters
-        const { platform_name, platform_url } = req.body; // Extract fields to update from the request body 
-        
+        const { platform_name, platform_url } = req.body; // Extract fields to update from the request body
+
         // Check if the provided id is valid
         if (!ObjectId.isValid(id)) {
           return res.status(400).json({ message: "Invalid link ID." });
         }
         console.log(platform_name, platform_url);
-        
+
         // Build the update object based on fields provided in the body
         const updateFields = {};
         if (platform_name) {
