@@ -15,21 +15,9 @@ if (!process.env.DB_USER || !process.env.DB_PASS) {
 }
 
 const uploadRoute = require("./upload");
+const publicRoute = require("./publicApi");
 const { authRouter, validateJWT } = require("./auth");
 
-const corsOptions = {
-  origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true); // Allow the origin if it's in the allowedOrigins list
-    } else {
-      callback(new Error(`Origin ${origin} not allowed by CORS`)); // Block the request if not in the allowedOrigins
-    }
-  },
-  credentials: true, // Allow credentials (cookies)
-};
 const allowedOrigins =
   process.env.NODE_ENV === "production"
     ? "https://share-link-ruddy.vercel.app"
@@ -47,6 +35,7 @@ app.use(cookieParser());
 app.use(express.json());
 app.use("/api", uploadRoute);
 app.use("/api", authRouter);
+app.use("/api", publicRoute);
 
 // MongoDB connection URI
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.2nr8q.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;

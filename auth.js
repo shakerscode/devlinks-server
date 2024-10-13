@@ -24,11 +24,22 @@ const usersCollection = client.db("devLinks").collection("users");
 
 // JWT Validation Middleware
 const validateJWT = (req, res, next) => {
-  const token = req?.cookies?.authToken; // Get the token from cookies
+  let token = req.cookies?.authToken; // Check for the token in cookies (authToken)
+
+  // If no cookie token, check for Authorization header (frontendToken)
+  if (!token && req.headers.authorization) {
+    const authHeader = req.headers.authorization;
+    if (authHeader.startsWith("Bearer ")) {
+      token = authHeader.split(" ")[1];
+    }
+  }
+
+  // If no token is provided in either place, return an error
   if (!token) {
     return res.status(401).json({ message: "No token provided" });
   }
 
+  // Verify the token (whether from cookie or header)
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
     if (err) {
       return res.status(403).json({ message: "Invalid token" });
@@ -151,10 +162,20 @@ authRouter.post("/logout", (req, res) => {
 // Protect a backend route with validateJWT
 authRouter.get("/user/profile", async (req, res) => {
   try {
-    const token = req.cookies.authToken;
-    if (!token) {
-      return res.status(401).json({ message: "No token provided" });
+    let token = req.cookies.authToken; // Check for authToken in cookies
+
+    // Check for frontendToken in Authorization header if no authToken found
+    if (!token && req.headers.authorization) {
+      const authHeader = req.headers.authorization;
+      if (authHeader.startsWith("Bearer ")) {
+        token = authHeader.split(" ")[1]; // Extract token from Bearer header
+      }
     }
+
+    // If no token is provided, return 401 Unauthorized
+    if (!token) {
+        return res.status(401).json({ message: "No token provided" });
+      }
 
     // Verify JWT and extract user ID
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
