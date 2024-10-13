@@ -17,8 +17,6 @@ if (!process.env.DB_USER || !process.env.DB_PASS) {
 const uploadRoute = require("./upload");
 const { authRouter, validateJWT } = require("./auth");
 
-
- 
 const corsOptions = {
   origin: (origin, callback) => {
     // Allow requests with no origin (like mobile apps or curl requests)
@@ -74,6 +72,9 @@ async function run() {
       try {
         const { platform_name, platform_url } = req.body;
 
+        // Extract userId from the JWT token (set by validateJWT middleware)
+        const userId = req.user.userId;
+
         // Validate the request data
         if (!platform_name || !platform_url) {
           return res
@@ -96,13 +97,14 @@ async function run() {
           platform_name,
           platform_url,
           createdAt: new Date(),
+          userId, // Use the userId from the JWT
         };
 
         // Insert the new link into the userLinks collection
         const result = await userLinksCollection.insertOne(linkData);
         res.status(201).json({
           message: "Link saved successfully!",
-          linkId: result.insertedId,
+          link: { ...linkData, linkId: result.insertedId }, // Return full link object
         });
       } catch (error) {
         console.error("Failed to save link:", error);
@@ -111,9 +113,18 @@ async function run() {
     });
 
     // Define a GET route to fetch all links (optional)
-    app.get("/api/links", validateJWT, async (req, res) => {
+    app.get("/api/links/:id", validateJWT, async (req, res) => {
       try {
-        const links = await userLinksCollection.find({}).toArray();
+        const { id } = req.params;
+
+        // Ensure the ID is valid and can be used in MongoDB
+        if (!ObjectId.isValid(id)) {
+          return res.status(400).json({ message: "Invalid ID format" });
+        }
+
+        // Fetch all links created by this user
+        const links = await userLinksCollection.find({ userId: id }).toArray();
+
         res.status(200).json(links);
       } catch (error) {
         console.error("Failed to fetch links:", error);
@@ -147,8 +158,6 @@ async function run() {
       }
     });
 
-    //Update a link
-
     // Update a link
     app.patch("/api/update/:id", validateJWT, async (req, res) => {
       try {
@@ -158,7 +167,7 @@ async function run() {
         // Check if the provided id is valid
         if (!ObjectId.isValid(id)) {
           return res.status(400).json({ message: "Invalid link ID." });
-        } 
+        }
 
         // Build the update object based on fields provided in the body
         const updateFields = {};

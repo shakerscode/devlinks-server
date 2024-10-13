@@ -43,6 +43,23 @@ authRouter.post("/register", async (req, res) => {
   try {
     const { first_name, last_name, email, password } = req.body;
 
+    // Generate the base username from the email
+    const user_name = email.split("@")[0].toLowerCase();
+    let userNameExists = true;
+    let counter = 1;
+    // Check if the username is unique
+    while (userNameExists) {
+      const existingUserName = await usersCollection.findOne({ user_name });
+
+      if (existingUserName) {
+        // If username exists, append a number to make it unique
+        user_name = `${baseUserName}${counter}`;
+        counter++;
+      } else {
+        userNameExists = false;
+      }
+    }
+
     // Check if user already exists
     const existingUser = await usersCollection.findOne({ email });
     if (existingUser) {
@@ -53,7 +70,13 @@ authRouter.post("/register", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create new user document
-    const newUser = { first_name, last_name, email, password: hashedPassword };
+    const newUser = {
+      first_name,
+      last_name,
+      email,
+      password: hashedPassword,
+      user_name,
+    };
     await usersCollection.insertOne(newUser);
 
     // Create a JWT token
@@ -68,12 +91,12 @@ authRouter.post("/register", async (req, res) => {
     // Set the token as an HttpOnly cookie
     res.cookie("authToken", token, {
       httpOnly: true,
-      sameSite: process.env.NODE_ENV === "production" ? "None" :"Lax",
+      sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
       sameSite: "None",
       maxAge: 24 * 60 * 60 * 1000, // 24 hour
     });
 
-    res.status(201).json({ message: "User registered successfully." });
+    res.status(201).json({ message: "User registered successfully.", token });
   } catch (error) {
     console.error("Error registering user:", error);
     res.status(500).json({ message: "Server error." });
@@ -106,13 +129,13 @@ authRouter.post("/signin", async (req, res) => {
 
     // Set the token as an HttpOnly cookie
     res.cookie("authToken", token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "None" :"Lax",
-        maxAge: 24 * 60 * 60 * 1000, // 24 hour
-      });
-      
-    res.status(200).json({ message: "Sign-in successful." });
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+      maxAge: 24 * 60 * 60 * 1000, // 24 hour
+    });
+
+    res.status(200).json({ message: "Sign-in successful.", token });
   } catch (error) {
     console.error("Error signing in user:", error);
     res.status(500).json({ message: "Server error." });
@@ -128,13 +151,11 @@ authRouter.post("/logout", (req, res) => {
 // Protect a backend route with validateJWT
 authRouter.get("/user/profile", async (req, res) => {
   try {
-      console.log(req.cookies.authToken);
     const token = req.cookies.authToken;
     if (!token) {
       return res.status(401).json({ message: "No token provided" });
     }
 
-    
     // Verify JWT and extract user ID
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const userId = decoded.userId;
