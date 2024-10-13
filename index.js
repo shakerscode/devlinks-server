@@ -28,7 +28,7 @@ const allowedOrigins =
 // Middleware configuration
 app.use(
   cors({
-    origin: allowedOrigins, // Your frontend origin
+    origin: allowedOrigins, // frontend origin
     credentials: true, // Allow credentials (cookies)
   })
 );
