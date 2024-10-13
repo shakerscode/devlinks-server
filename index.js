@@ -14,10 +14,12 @@ if (!process.env.DB_USER || !process.env.DB_PASS) {
   process.exit(1); // Exit the process with failure code
 }
 
+//External routes import
 const uploadRoute = require("./upload");
 const publicRoute = require("./publicApi");
 const { authRouter, validateJWT } = require("./auth");
 
+//Allowing CORS origin for local and live site
 const allowedOrigins =
   process.env.NODE_ENV === "production"
     ? "https://share-link-ruddy.vercel.app"
@@ -30,9 +32,13 @@ app.use(
     credentials: true, // Allow credentials (cookies)
   })
 );
+
+//Cookie parser for parse cookie
 app.use(cookieParser());
 
 app.use(express.json());
+
+//Adding routes to the main app
 app.use("/api", uploadRoute);
 app.use("/api", authRouter);
 app.use("/api", publicRoute);
@@ -40,7 +46,7 @@ app.use("/api", publicRoute);
 // MongoDB connection URI
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.2nr8q.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
+// Creating a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -53,10 +59,11 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     await client.connect();
-    // Define collections
+
+    // MongoDB collections for users
     const userLinksCollection = client.db("devLinks").collection("userAllInfo");
 
-    // Define a POST route to save links in the database
+    // A POST route to save links in the database
     app.post("/api/save-link", validateJWT, async (req, res) => {
       try {
         const { platform_name, platform_url } = req.body;
@@ -86,14 +93,15 @@ async function run() {
           platform_name,
           platform_url,
           createdAt: new Date(),
-          userId, // Use the userId from the JWT
+          userId,
         };
 
         // Insert the new link into the userLinks collection
         const result = await userLinksCollection.insertOne(linkData);
+
         res.status(201).json({
           message: "Link saved successfully!",
-          link: { ...linkData, linkId: result.insertedId }, // Return full link object
+          link: { ...linkData, linkId: result.insertedId },
         });
       } catch (error) {
         console.error("Failed to save link:", error);
@@ -101,7 +109,7 @@ async function run() {
       }
     });
 
-    // Define a GET route to fetch all links (optional)
+    // A GET route to fetch all links based on user
     app.get("/api/links/:id", validateJWT, async (req, res) => {
       try {
         const { id } = req.params;
@@ -121,10 +129,10 @@ async function run() {
       }
     });
 
-    //Delete a link list
+    //Delete a link from database
     app.delete("/api/delete/:id", validateJWT, async (req, res) => {
       try {
-        const { id } = req.params; // Extract the id from the request parameters
+        const { id } = req.params;
 
         // Ensure the ID is valid and can be used in MongoDB
         if (!ObjectId.isValid(id)) {
@@ -147,7 +155,7 @@ async function run() {
       }
     });
 
-    // Update a link
+    // Update a link in database
     app.patch("/api/update/:id", validateJWT, async (req, res) => {
       try {
         const { id } = req.params; // Extract the link id from the request parameters
@@ -190,6 +198,7 @@ async function run() {
         res.status(500).json({ message: "Failed to update link." });
       }
     });
+
   } catch (err) {
     console.error("Error connecting to MongoDB:", err);
   } finally {
@@ -197,7 +206,7 @@ async function run() {
     process.on("SIGINT", async () => {
       await client.close();
       console.log("MongoDB client closed.");
-      process.exit(0); // Exit gracefully
+      process.exit(0);
     });
   }
 }

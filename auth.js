@@ -3,13 +3,13 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
-const authRouter = express.Router(); // Create an Express router for authentication routes
+//Express router for authentication routes
+const authRouter = express.Router();
 
-// Replace with your MongoDB connection string
 // MongoDB connection URI
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.2nr8q.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
+// Creating a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -20,11 +20,14 @@ const client = new MongoClient(uri, {
 
 client.connect();
 
+//MongoDB Database collection for users
 const usersCollection = client.db("devLinks").collection("users");
 
 // JWT Validation Middleware
+// This middleware will run each time when we make api req to any protected api. It will check if there is any token or not. We check toke in two ways. One is we set it by default when we make api req and it automatically return the token. Another one is we send a token from frontend and it checks that. The reason I used same token twice is sometime the default token gives some issues. So for avoiding unusual issues we does that. And we used HttpOnly which is more secure and can't access by the frontend.
+
 const validateJWT = (req, res, next) => {
-  let token = req.cookies?.authToken; // Check for the token in cookies (authToken)
+  let token = req.cookies?.authToken;
 
   // If no cookie token, check for Authorization header (frontendToken)
   if (!token && req.headers.authorization) {
@@ -44,7 +47,8 @@ const validateJWT = (req, res, next) => {
     if (err) {
       return res.status(403).json({ message: "Invalid token" });
     }
-    req.user = decoded; // Store decoded token in request object
+    // Store decoded token in request object
+    req.user = decoded;
     next();
   });
 };
@@ -58,6 +62,7 @@ authRouter.post("/register", async (req, res) => {
     const user_name = email.split("@")[0].toLowerCase();
     let userNameExists = true;
     let counter = 1;
+
     // Check if the username is unique
     while (userNameExists) {
       const existingUserName = await usersCollection.findOne({ user_name });
@@ -80,7 +85,7 @@ authRouter.post("/register", async (req, res) => {
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create new user document
+    // Create new user in DB
     const newUser = {
       first_name,
       last_name,
@@ -104,7 +109,7 @@ authRouter.post("/register", async (req, res) => {
       httpOnly: true,
       sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
       sameSite: "None",
-      maxAge: 24 * 60 * 60 * 1000, // 24 hour
+      maxAge: 24 * 60 * 60 * 1000, 
     });
 
     res.status(201).json({ message: "User registered successfully.", token });
@@ -143,7 +148,7 @@ authRouter.post("/signin", async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
-      maxAge: 24 * 60 * 60 * 1000, // 24 hour
+      maxAge: 24 * 60 * 60 * 1000,  
     });
 
     res.status(200).json({ message: "Sign-in successful.", token });
@@ -155,27 +160,28 @@ authRouter.post("/signin", async (req, res) => {
 
 // User logout route
 authRouter.post("/logout", (req, res) => {
-  res.clearCookie("authToken"); // Clear the JWT cookie
+  res.clearCookie("authToken");  
   res.status(200).json({ message: "Logged out successfully." });
 });
 
-// Protect a backend route with validateJWT
+// User profile route which checks each time a user is authenticated or not
 authRouter.get("/user/profile", async (req, res) => {
   try {
-    let token = req.cookies.authToken; // Check for authToken in cookies
+    // Check for authToken in cookies
+    let token = req.cookies.authToken; 
 
     // Check for frontendToken in Authorization header if no authToken found
     if (!token && req.headers.authorization) {
       const authHeader = req.headers.authorization;
       if (authHeader.startsWith("Bearer ")) {
-        token = authHeader.split(" ")[1]; // Extract token from Bearer header
+        token = authHeader.split(" ")[1];  
       }
     }
 
     // If no token is provided, return 401 Unauthorized
     if (!token) {
-        return res.status(401).json({ message: "No token provided" });
-      }
+      return res.status(401).json({ message: "No token provided" });
+    }
 
     // Verify JWT and extract user ID
     const decoded = jwt.verify(token, process.env.JWT_SECRET);

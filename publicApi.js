@@ -1,7 +1,7 @@
 const express = require("express");
 const { MongoClient } = require("mongodb");
 
-const publicRouter = express.Router(); // Create a router for public APIs
+const publicRouter = express.Router();
 
 // MongoDB connection URI (assuming this is already set up)
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.2nr8q.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -32,10 +32,10 @@ publicRouter.get("/public-profile/:username", async (req, res) => {
     // Fetch all links created by the user
     const links = await userLinksCollection
       .find({ userId: user._id?.toString() })
-      .toArray(); 
-      
+      .toArray();
+
     // Send the public profile data
-    res.status(200).json({user, links});
+    res.status(200).json({ user, links });
   } catch (error) {
     console.error("Failed to fetch public profile:", error);
     res.status(500).json({ message: "Failed to fetch public profile." });
